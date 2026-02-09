@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import healthRoute from "./routes/health.route";
 import authRoute from "./routes/auth.route";
-
+import "dotenv/config";
 const app = express();
 
 app.use(cors());
