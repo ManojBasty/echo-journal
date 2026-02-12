@@ -4,6 +4,8 @@ import healthRoute from "./routes/health.route";
 import authRoute from "./routes/auth.route";
 import "dotenv/config";
 import profileRoute from "./routes/profile.route";
+import journalRoute from "./routes/journal.route";
+import { errorHandler } from "./middleware/error.middleware";
 
 const app = express();
 
@@ -14,6 +16,7 @@ app.use(express.json());
 app.use("/api", healthRoute);
 app.use("/api/auth", authRoute);
 app.use("/api", profileRoute);
+app.use("/api", journalRoute);
 
 // app.get("/", (req, res) => {
 //   res.send("Echo backend is running");

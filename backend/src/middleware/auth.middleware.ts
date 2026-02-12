@@ -27,7 +27,7 @@ export const authenticate = (
     ) as JwtPayload;
 
     // attach user info to request
-    (req as any).userId = decoded.userId;
+    req.userId = decoded.userId;
 
     next();
   } catch (error) {
