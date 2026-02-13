@@ -1,14 +1,13 @@
 import { Request, Response } from "express";
 import prisma from "../services/prisma";
 import { journalSchema } from "../validators/journal.validator";
+import { asyncHandler } from "../utils/asyncHandler";
 
 // CREATE JOURNAL
-export const createJournal = async (req: Request, res: Response) => {
-  try {
+export const createJournal = asyncHandler(
+  async (req: Request, res: Response) => {
     if (!req.userId) {
-      return res.status(401).json({
-        message: "Authentication required",
-      });
+      throw { status: 401, message: "Authentication required" };
     }
 
     const parsed = journalSchema.parse(req.body);
@@ -21,21 +20,15 @@ export const createJournal = async (req: Request, res: Response) => {
       },
     });
 
-    return res.status(201).json(journal);
-  } catch (error: any) {
-    return res.status(400).json({
-      message: error.message,
-    });
+    res.status(201).json(journal);
   }
-};
+);
 
-// GET ALL JOURNALS (FOR AUTHENTICATED USER)
-export const getJournals = async (req: Request, res: Response) => {
-  try {
+// GET ALL JOURNALS
+export const getJournals = asyncHandler(
+  async (req: Request, res: Response) => {
     if (!req.userId) {
-      return res.status(401).json({
-        message: "Authentication required",
-      });
+      throw { status: 401, message: "Authentication required" };
     }
 
     const journals = await prisma.journal.findMany({
@@ -43,25 +36,18 @@ export const getJournals = async (req: Request, res: Response) => {
       orderBy: { createdAt: "desc" },
     });
 
-    return res.status(200).json(journals);
-  } catch {
-    return res.status(500).json({
-      message: "Internal server error",
-    });
+    res.status(200).json(journals);
   }
-};
+);
 
 // UPDATE JOURNAL
-export const updateJournal = async (req: Request, res: Response) => {
-  try {
+export const updateJournal = asyncHandler(
+  async (req: Request, res: Response) => {
     if (!req.userId) {
-      return res.status(401).json({
-        message: "Authentication required",
-      });
+      throw { status: 401, message: "Authentication required" };
     }
 
     const { id } = req.params;
-
     const parsed = journalSchema.parse(req.body);
 
     const journal = await prisma.journal.findUnique({
@@ -69,9 +55,7 @@ export const updateJournal = async (req: Request, res: Response) => {
     });
 
     if (!journal || journal.userId !== req.userId) {
-      return res.status(404).json({
-        message: "Journal not found",
-      });
+      throw { status: 404, message: "Journal not found" };
     }
 
     const updated = await prisma.journal.update({
@@ -82,21 +66,15 @@ export const updateJournal = async (req: Request, res: Response) => {
       },
     });
 
-    return res.json(updated);
-  } catch (error: any) {
-    return res.status(400).json({
-      message: error.message,
-    });
+    res.json(updated);
   }
-};
+);
 
 // DELETE JOURNAL
-export const deleteJournal = async (req: Request, res: Response) => {
-  try {
+export const deleteJournal = asyncHandler(
+  async (req: Request, res: Response) => {
     if (!req.userId) {
-      return res.status(401).json({
-        message: "Authentication required",
-      });
+      throw { status: 401, message: "Authentication required" };
     }
 
     const { id } = req.params;
@@ -106,21 +84,15 @@ export const deleteJournal = async (req: Request, res: Response) => {
     });
 
     if (!journal || journal.userId !== req.userId) {
-      return res.status(404).json({
-        message: "Journal not found",
-      });
+      throw { status: 404, message: "Journal not found" };
     }
 
     await prisma.journal.delete({
       where: { id },
     });
 
-    return res.json({
+    res.json({
       message: "Journal deleted",
     });
-  } catch {
-    return res.status(500).json({
-      message: "Internal server error",
-    });
   }
-};
+);

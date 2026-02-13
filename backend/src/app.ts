@@ -17,6 +17,7 @@ app.use("/api", healthRoute);
 app.use("/api/auth", authRoute);
 app.use("/api", profileRoute);
 app.use("/api", journalRoute);
+app.use(errorHandler);
 
 // app.get("/", (req, res) => {
 //   res.send("Echo backend is running");
