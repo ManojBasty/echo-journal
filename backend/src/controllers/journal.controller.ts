@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import prisma from "../services/prisma";
 import { journalSchema } from "../validators/journal.validator";
 import { asyncHandler } from "../utils/asyncHandler";
+import { analyzeJournalContent } from "../services/ai.service";
 
 // CREATE JOURNAL
 export const createJournal = asyncHandler(
@@ -34,6 +35,9 @@ export const getJournals = asyncHandler(
     const journals = await prisma.journal.findMany({
       where: { userId: req.userId },
       orderBy: { createdAt: "desc" },
+      include: {
+        analyses: true, // Include analysis history
+      },
     });
 
     res.status(200).json(journals);
@@ -93,6 +97,46 @@ export const deleteJournal = asyncHandler(
 
     res.json({
       message: "Journal deleted",
+    });
+  }
+);
+
+// ANALYZE JOURNAL (NEW CLEAN VERSION)
+export const analyzeJournal = asyncHandler(
+  async (req: Request, res: Response) => {
+    if (!req.userId) {
+      throw { status: 401, message: "Authentication required" };
+    }
+
+    const { id } = req.params;
+
+    const journal = await prisma.journal.findUnique({
+      where: { id },
+    });
+
+    if (!journal || journal.userId !== req.userId) {
+      throw { status: 404, message: "Journal not found" };
+    }
+
+    // Call AI
+    const aiResult = await analyzeJournalContent(journal.content);
+
+    // Store analysis in separate table
+    const analysis = await prisma.journalAnalysis.create({
+      data: {
+        summary: aiResult.summary,
+        mood: aiResult.mood,
+        emotionalScore: aiResult.emotionalScore,
+        reflectionPrompt: aiResult.reflectionPrompt,
+        detectedPatterns: JSON.stringify(aiResult.detectedPatterns),
+        aiModel: "llama-3.1-8b-instant",
+        journalId: journal.id,
+      },
+    });
+
+    res.json({
+      journal,
+      analysis,
     });
   }
 );

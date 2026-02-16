@@ -10,4 +10,6 @@ router.get("/profile", authenticate, (req, res) => {
   });
 });
 
+
+
 export default router;
