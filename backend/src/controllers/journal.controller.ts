@@ -36,7 +36,7 @@ export const getJournals = asyncHandler(
       where: { userId: req.userId },
       orderBy: { createdAt: "desc" },
       include: {
-        analyses: true, // Include analysis history
+        analyses: true,
       },
     });
 
@@ -101,7 +101,7 @@ export const deleteJournal = asyncHandler(
   }
 );
 
-// ANALYZE JOURNAL (NEW CLEAN VERSION)
+// ANALYZE JOURNAL
 export const analyzeJournal = asyncHandler(
   async (req: Request, res: Response) => {
     if (!req.userId) {
@@ -112,31 +112,61 @@ export const analyzeJournal = asyncHandler(
 
     const journal = await prisma.journal.findUnique({
       where: { id },
+      include: {
+        analyses: {
+          orderBy: { analyzedAt: "desc" },
+          take: 1,
+        },
+      },
     });
 
     if (!journal || journal.userId !== req.userId) {
       throw { status: 404, message: "Journal not found" };
     }
 
-    // Call AI
+    const cooldownHours =
+      Number(process.env.ANALYSIS_COOLDOWN_HOURS) || 24;
+
+    const latestAnalysis = journal.analyses[0];
+
+  if (latestAnalysis) {
+  const now = new Date();
+  const diffInMs =
+    now.getTime() - latestAnalysis.analyzedAt.getTime();
+
+  const diffInHours = diffInMs / (1000 * 60 * 60);
+  const remainingHours = cooldownHours - diffInHours;
+
+  if (diffInHours < cooldownHours) {
+    return res.json({
+      message: "Cooldown active",
+      hoursRemaining: Number(remainingHours.toFixed(2)),
+      journal,
+      analysis: latestAnalysis,
+    });
+  }
+}
+
     const aiResult = await analyzeJournalContent(journal.content);
 
-    // Store analysis in separate table
-    const analysis = await prisma.journalAnalysis.create({
+    const newAnalysis = await prisma.journalAnalysis.create({
       data: {
         summary: aiResult.summary,
         mood: aiResult.mood,
         emotionalScore: aiResult.emotionalScore,
         reflectionPrompt: aiResult.reflectionPrompt,
-        detectedPatterns: JSON.stringify(aiResult.detectedPatterns),
+        detectedPatterns: JSON.stringify(
+          aiResult.detectedPatterns
+        ),
         aiModel: "llama-3.1-8b-instant",
         journalId: journal.id,
       },
     });
 
     res.json({
+      message: "New analysis created",
       journal,
-      analysis,
+      analysis: newAnalysis,
     });
   }
 );
