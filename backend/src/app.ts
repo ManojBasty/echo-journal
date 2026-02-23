@@ -6,7 +6,7 @@ import "dotenv/config";
 import profileRoute from "./routes/profile.route";
 import journalRoute from "./routes/journal.route";
 import { errorHandler } from "./middleware/error.middleware";
-
+import analyticsRoute from "./routes/analytics.route";
 const app = express();
 
 app.use(cors());
@@ -18,6 +18,7 @@ app.use("/api/auth", authRoute);
 app.use("/api", profileRoute);
 app.use("/api", journalRoute);
 app.use(errorHandler);
+app.use("/api", analyticsRoute);
 
 // app.get("/", (req, res) => {
 //   res.send("Echo backend is running");
