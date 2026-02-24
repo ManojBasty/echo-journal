@@ -149,19 +149,28 @@ export const analyzeJournal = asyncHandler(
 
     const aiResult = await analyzeJournalContent(journal.content);
 
-    const newAnalysis = await prisma.journalAnalysis.create({
-      data: {
-        summary: aiResult.summary,
-        mood: aiResult.mood,
-        emotionalScore: aiResult.emotionalScore,
-        reflectionPrompt: aiResult.reflectionPrompt,
-        detectedPatterns: JSON.stringify(
-          aiResult.detectedPatterns
-        ),
-        aiModel: "llama-3.1-8b-instant",
-        journalId: journal.id,
-      },
-    });
+ const normalizedMood = aiResult.mood.trim().toLowerCase();
+
+const clampedScore = Math.max(
+  0,
+  Math.min(10, aiResult.emotionalScore)
+);
+
+const newAnalysis = await prisma.journalAnalysis.create({
+  data: {
+    summary: aiResult.summary.trim(),
+    mood: normalizedMood,
+    emotionalScore: clampedScore,
+    reflectionPrompt: aiResult.reflectionPrompt.trim(),
+    detectedPatterns: JSON.stringify(
+      aiResult.detectedPatterns.map((p) =>
+        p.trim().toLowerCase()
+      )
+    ),
+    aiModel: "llama-3.1-8b-instant",
+    journalId: journal.id,
+  },
+});
 
     res.json({
       message: "New analysis created",

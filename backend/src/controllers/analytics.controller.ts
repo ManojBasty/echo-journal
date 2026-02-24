@@ -9,6 +9,7 @@ export const getMoodTrend = asyncHandler(
     }
 
     const daysParam = req.query.days as string | undefined;
+
     let dateFilter = {};
 
     if (daysParam) {
@@ -25,42 +26,67 @@ export const getMoodTrend = asyncHandler(
       }
     }
 
-    const analyses = await prisma.journalAnalysis.findMany({
-      where: {
-        journal: {
-          userId: req.userId,
-        },
-        ...dateFilter,
+    const whereCondition = {
+      journal: {
+        userId: req.userId,
       },
-      orderBy: {
-        analyzedAt: "desc",
-      },
+      ...dateFilter,
+    };
+
+    // 1️⃣ Total analyses count (DB level)
+    const total = await prisma.journalAnalysis.count({
+      where: whereCondition,
     });
 
-    if (analyses.length === 0) {
+    if (total === 0) {
       return res.json({
         message: "No analysis data available for this timeframe",
       });
     }
 
-    const total = analyses.length;
+    // 2️⃣ Average emotional score (DB level)
+    const avgResult = await prisma.journalAnalysis.aggregate({
+      _avg: {
+        emotionalScore: true,
+      },
+      where: whereCondition,
+    });
 
-    const avgScore =
-      analyses.reduce((sum, a) => sum + a.emotionalScore, 0) / total;
+    const avgScore = avgResult._avg.emotionalScore ?? 0;
+
+    // 3️⃣ Mood distribution (DB level grouping)
+    const moodGroup = await prisma.journalAnalysis.groupBy({
+      by: ["mood"],
+      _count: {
+        mood: true,
+      },
+      where: whereCondition,
+    });
 
     const moodCount: Record<string, number> = {};
-    analyses.forEach((a) => {
-      moodCount[a.mood] = (moodCount[a.mood] || 0) + 1;
+    moodGroup.forEach((m) => {
+      moodCount[m.mood] = m._count.mood;
+    });
+
+    // 4️⃣ Fetch only detectedPatterns for pattern processing
+    const analyses = await prisma.journalAnalysis.findMany({
+      where: whereCondition,
+      select: {
+        detectedPatterns: true,
+      },
     });
 
     const patternCount: Record<string, number> = {};
+
     analyses.forEach((a) => {
       try {
         const patterns: string[] = JSON.parse(a.detectedPatterns);
         patterns.forEach((p) => {
           patternCount[p] = (patternCount[p] || 0) + 1;
         });
-      } catch {}
+      } catch {
+        // Ignore malformed JSON safely
+      }
     });
 
     const mostCommonPattern =
