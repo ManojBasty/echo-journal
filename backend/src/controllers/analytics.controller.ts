@@ -2,6 +2,9 @@ import { Request, Response } from "express";
 import prisma from "../services/prisma";
 import { asyncHandler } from "../utils/asyncHandler";
 
+/**
+ * GET /api/analytics/mood-trend
+ */
 export const getMoodTrend = asyncHandler(
   async (req: Request, res: Response) => {
     if (!req.userId) {
@@ -19,21 +22,16 @@ export const getMoodTrend = asyncHandler(
         fromDate.setDate(fromDate.getDate() - days);
 
         dateFilter = {
-          analyzedAt: {
-            gte: fromDate,
-          },
+          analyzedAt: { gte: fromDate },
         };
       }
     }
 
     const whereCondition = {
-      journal: {
-        userId: req.userId,
-      },
+      journal: { userId: req.userId },
       ...dateFilter,
     };
 
-    // 1️⃣ Total analyses count (DB level)
     const total = await prisma.journalAnalysis.count({
       where: whereCondition,
     });
@@ -44,22 +42,16 @@ export const getMoodTrend = asyncHandler(
       });
     }
 
-    // 2️⃣ Average emotional score (DB level)
     const avgResult = await prisma.journalAnalysis.aggregate({
-      _avg: {
-        emotionalScore: true,
-      },
+      _avg: { emotionalScore: true },
       where: whereCondition,
     });
 
     const avgScore = avgResult._avg.emotionalScore ?? 0;
 
-    // 3️⃣ Mood distribution (DB level grouping)
     const moodGroup = await prisma.journalAnalysis.groupBy({
       by: ["mood"],
-      _count: {
-        mood: true,
-      },
+      _count: { mood: true },
       where: whereCondition,
     });
 
@@ -68,12 +60,9 @@ export const getMoodTrend = asyncHandler(
       moodCount[m.mood] = m._count.mood;
     });
 
-    // 4️⃣ Fetch only detectedPatterns for pattern processing
     const analyses = await prisma.journalAnalysis.findMany({
       where: whereCondition,
-      select: {
-        detectedPatterns: true,
-      },
+      select: { detectedPatterns: true },
     });
 
     const patternCount: Record<string, number> = {};
@@ -84,9 +73,7 @@ export const getMoodTrend = asyncHandler(
         patterns.forEach((p) => {
           patternCount[p] = (patternCount[p] || 0) + 1;
         });
-      } catch {
-        // Ignore malformed JSON safely
-      }
+      } catch {}
     });
 
     const mostCommonPattern =
@@ -104,6 +91,110 @@ export const getMoodTrend = asyncHandler(
       moodDistribution: moodCount,
       mostCommonPattern,
       insight,
+    });
+  }
+);
+
+/**
+ * GET /api/analytics/latest-analysis
+ */
+export const getLatestAnalysis = asyncHandler(
+  async (req: Request, res: Response) => {
+    if (!req.userId) {
+      throw { status: 401, message: "Authentication required" };
+    }
+
+    const latest = await prisma.journalAnalysis.findFirst({
+      where: {
+        journal: { userId: req.userId },
+      },
+      orderBy: { analyzedAt: "desc" },
+      include: {
+        journal: {
+          select: { id: true, title: true },
+        },
+      },
+    });
+
+    if (!latest) {
+      return res.json({
+        message: "No analysis data available yet",
+      });
+    }
+
+    res.json({
+      journalId: latest.journal.id,
+      journalTitle: latest.journal.title,
+      summary: latest.summary,
+      mood: latest.mood,
+      emotionalScore: latest.emotionalScore,
+      reflectionPrompt: latest.reflectionPrompt,
+      analyzedAt: latest.analyzedAt,
+      aiModel: latest.aiModel,
+    });
+  }
+);
+
+/**
+ * GET /api/analytics/dashboard-summary
+ */
+export const getDashboardSummary = asyncHandler(
+  async (req: Request, res: Response) => {
+    if (!req.userId) {
+      throw { status: 401, message: "Authentication required" };
+    }
+
+    const userId = req.userId;
+
+    const totalJournals = await prisma.journal.count({
+      where: { userId },
+    });
+
+    const totalAnalyses = await prisma.journalAnalysis.count({
+      where: {
+        journal: { userId },
+      },
+    });
+
+    const latest = await prisma.journalAnalysis.findFirst({
+      where: {
+        journal: { userId },
+      },
+      orderBy: { analyzedAt: "desc" },
+      include: {
+        journal: {
+          select: { id: true, title: true },
+        },
+      },
+    });
+
+    const fromDate = new Date();
+    fromDate.setDate(fromDate.getDate() - 7);
+
+    const avgResult = await prisma.journalAnalysis.aggregate({
+      _avg: { emotionalScore: true },
+      where: {
+        journal: { userId },
+        analyzedAt: { gte: fromDate },
+      },
+    });
+
+    const avgScore = avgResult._avg.emotionalScore ?? 0;
+
+    res.json({
+      totalJournals,
+      totalAnalyses,
+      averageEmotionalScoreLast7Days: Number(avgScore.toFixed(2)),
+      latestAnalysis: latest
+        ? {
+            journalId: latest.journal.id,
+            journalTitle: latest.journal.title,
+            mood: latest.mood,
+            emotionalScore: latest.emotionalScore,
+            summary: latest.summary,
+            analyzedAt: latest.analyzedAt,
+          }
+        : null,
     });
   }
 );
