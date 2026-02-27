@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import prisma from "../services/prisma";
 import { asyncHandler } from "../utils/asyncHandler";
+import { analyzeJournalContent, generateWeeklyReflection } from "../services/ai.service";
 
 /**
  * GET /api/analytics/mood-trend
@@ -196,5 +197,67 @@ export const getDashboardSummary = asyncHandler(
           }
         : null,
     });
+  }
+);
+export const getWeeklyReflection = asyncHandler(
+  async (req: Request, res: Response) => {
+    if (!req.userId) {
+      throw { status: 401, message: "Authentication required" };
+    }
+
+    const fromDate = new Date();
+    fromDate.setDate(fromDate.getDate() - 7);
+
+    const analyses = await prisma.journalAnalysis.findMany({
+      where: {
+        journal: { userId: req.userId },
+        analyzedAt: { gte: fromDate },
+      },
+      orderBy: { analyzedAt: "desc" },
+    });
+
+    if (analyses.length === 0) {
+      return res.json({
+        message: "No analysis data available for the last 7 days",
+      });
+    }
+
+    // Step 2: Combine summaries + patterns
+    const combinedSummaries = analyses
+      .map((a) => a.summary)
+      .join("\n");
+
+    const combinedPatterns: string[] = [];
+
+    analyses.forEach((a) => {
+      try {
+        const parsed: string[] = JSON.parse(a.detectedPatterns);
+        combinedPatterns.push(...parsed);
+      } catch {}
+    });
+
+    const prompt = `
+You are analyzing a user's weekly emotional reflection.
+
+Summaries:
+${combinedSummaries}
+
+Detected Patterns:
+${combinedPatterns.join(", ")}
+
+Provide:
+1. Overall emotional trend of the week
+2. Recurring behavioral themes
+3. One deep reflection insight
+4. One actionable suggestion
+`;
+
+    // Step 3: Call AI
+    const weeklyStructured = await generateWeeklyReflection(prompt);
+
+res.json({
+  analysesCount: analyses.length,
+  weeklyReflection: weeklyStructured,
+});
   }
 );

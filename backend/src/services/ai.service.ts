@@ -64,3 +64,40 @@ ${content}
     throw new Error("AI analysis failed");
   }
 };
+export const generateWeeklyReflection = async (content: string) => {
+  const prompt = `
+You are analyzing a user's weekly emotional data.
+
+Return ONLY valid JSON in this exact format:
+
+{
+  "overallTrend": string,
+  "recurringThemes": string[],
+  "deepInsight": string,
+  "actionStep": string
+}
+
+No markdown.
+No extra explanation.
+No text outside JSON.
+
+Weekly Data:
+${content}
+`;
+
+  const response = await groq.chat.completions.create({
+    model: "llama-3.1-8b-instant",
+    messages: [
+      {
+        role: "system",
+        content: "You are a precise psychological analysis engine that returns structured JSON only.",
+      },
+      { role: "user", content: prompt },
+    ],
+    temperature: 0.4,
+  });
+
+  const raw = response.choices[0].message.content;
+
+  return JSON.parse(raw as string);
+};
