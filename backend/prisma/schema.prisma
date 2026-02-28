@@ -8,12 +8,13 @@ datasource db {
 }
 
 model User {
-  id           String    @id @default(uuid())
-  email        String    @unique
+  id           String   @id @default(uuid())
+  email        String   @unique
   passwordHash String
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime @default(now())
 
-  journals     Journal[]
+  journals          Journal[]
+  weeklyReflections WeeklyReflection[]
 }
 
 model Journal {
@@ -22,10 +23,10 @@ model Journal {
   content   String
   createdAt DateTime @default(now())
 
-  user        User     @relation(fields: [userId], references: [id])
-  userId      String
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
 
-  analyses    JournalAnalysis[]
+  analyses JournalAnalysis[]
 
   @@index([userId])
 }
@@ -46,4 +47,20 @@ model JournalAnalysis {
   @@index([journalId])
   @@index([analyzedAt])
   @@index([journalId, analyzedAt])
+}
+
+model WeeklyReflection {
+  id              String @id @default(uuid())
+  overallTrend    String
+  recurringThemes String
+  deepInsight     String
+  actionStep      String
+
+  weekStart DateTime
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  @@unique([userId, weekStart])
 }
