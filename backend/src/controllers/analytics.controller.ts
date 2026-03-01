@@ -181,23 +181,25 @@ export const getDashboardSummary = asyncHandler(
     const avgScore = avgResult._avg.emotionalScore ?? 0;
 
     res.json({
-      totalJournals,
-      totalAnalyses,
-      averageEmotionalScoreLast7Days: Number(avgScore.toFixed(2)),
-      latestAnalysis: latest
-        ? {
-            journalId: latest.journal.id,
-            journalTitle: latest.journal.title,
-            mood: latest.mood,
-            emotionalScore: latest.emotionalScore,
-            summary: latest.summary,
-            analyzedAt: latest.analyzedAt,
-          }
-        : null,
+      success: true,
+      data: {
+        totalJournals,
+        totalAnalyses,
+        averageEmotionalScoreLast7Days: Number(avgScore.toFixed(2)),
+        latestAnalysis: latest
+          ? {
+              journalId: latest.journal.id,
+              journalTitle: latest.journal.title,
+              mood: latest.mood,
+              emotionalScore: latest.emotionalScore,
+              summary: latest.summary,
+              analyzedAt: latest.analyzedAt,
+            }
+          : null,
+      },
     });
   }
 );
-
 /**
  * GET /api/analytics/weekly-reflection
  * Generates once per calendar week (Monday-based)
