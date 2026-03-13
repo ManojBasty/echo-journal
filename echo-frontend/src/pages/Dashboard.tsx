@@ -1,7 +1,11 @@
+import MainLayout from "../layouts/MainLayout";
+
 export default function Dashboard() {
   return (
-    <div className="p-10 text-3xl">
-      Dashboard
-    </div>
+    <MainLayout>
+      <h2 className="text-3xl font-semibold">
+        Dashboard
+      </h2>
+    </MainLayout>
   );
 }

@@ -1,7 +1,11 @@
+import MainLayout from "../layouts/MainLayout";
+
 export default function Journal() {
   return (
-    <div className="p-10 text-3xl">
-      Journal Editor
-    </div>
+    <MainLayout>
+      <h2 className="text-3xl font-semibold">
+        Journal Editor
+      </h2>
+    </MainLayout>
   );
 }
