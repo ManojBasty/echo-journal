@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 
 export default function Sidebar() {
   return (
@@ -10,13 +10,13 @@ export default function Sidebar() {
 
       <nav className="flex flex-col gap-4 px-6">
 
-        <Link to="/dashboard" className="hover:text-gray-300">
+        <NavLink to="/dashboard" className="hover:text-gray-300">
           Dashboard
-        </Link>
+        </NavLink>
 
-        <Link to="/journal" className="hover:text-gray-300">
+        <NavLink to="/journal" className="hover:text-gray-300">
           Journal
-        </Link>
+        </NavLink>
 
       </nav>
 
