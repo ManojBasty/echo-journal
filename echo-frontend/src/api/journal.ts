@@ -15,3 +15,15 @@ export const createJournal = async (title: string, content: string) => {
 
   return response.data;
 };
+
+export const getJournals = async () => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get("/api/journals", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return response.data;
+};
