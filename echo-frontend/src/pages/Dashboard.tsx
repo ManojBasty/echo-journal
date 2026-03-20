@@ -4,6 +4,7 @@ import {
   getJournals,
   deleteJournal,
   updateJournal,
+  analyzeJournal,
 } from "../api/journal";
 
 type Journal = {
@@ -13,12 +14,20 @@ type Journal = {
   createdAt: string;
 };
 
+type Analysis = {
+  mood: string;
+  emotionalScore: number;
+  summary: string;
+};
+
 export default function Dashboard() {
   const [journals, setJournals] = useState<Journal[]>([]);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
+
+  const [analysisMap, setAnalysisMap] = useState<Record<string, Analysis>>({});
 
   useEffect(() => {
     const fetchJournals = async () => {
@@ -63,6 +72,19 @@ export default function Dashboard() {
       setEditingId(null);
     } catch (error) {
       console.error("Update failed", error);
+    }
+  };
+
+  const handleAnalyze = async (id: string) => {
+    try {
+      const data = await analyzeJournal(id);
+
+      setAnalysisMap((prev) => ({
+        ...prev,
+        [id]: data.analysis,
+      }));
+    } catch (error) {
+      console.error("Analysis failed", error);
     }
   };
 
@@ -133,7 +155,8 @@ export default function Dashboard() {
                     {new Date(journal.createdAt).toLocaleString()}
                   </p>
 
-                  <div className="flex gap-3 pt-2">
+                  {/* ACTIONS */}
+                  <div className="flex gap-3 pt-2 flex-wrap">
                     <button
                       onClick={() => handleEdit(journal)}
                       className="bg-blue-500 text-white px-3 py-1 rounded"
@@ -147,7 +170,36 @@ export default function Dashboard() {
                     >
                       Delete
                     </button>
+
+                    <button
+                      onClick={() => handleAnalyze(journal.id)}
+                      className="bg-purple-600 text-white px-3 py-1 rounded"
+                    >
+                      Analyze
+                    </button>
                   </div>
+
+                  {/* ANALYSIS RESULT */}
+                  {analysisMap[journal.id] && (
+                    <div className="bg-gray-100 p-3 rounded mt-2 space-y-1">
+
+                      <p>
+                        <strong>Mood:</strong>{" "}
+                        {analysisMap[journal.id].mood}
+                      </p>
+
+                      <p>
+                        <strong>Score:</strong>{" "}
+                        {analysisMap[journal.id].emotionalScore}/10
+                      </p>
+
+                      <p>
+                        <strong>Summary:</strong>{" "}
+                        {analysisMap[journal.id].summary}
+                      </p>
+
+                    </div>
+                  )}
                 </>
               )}
             </div>

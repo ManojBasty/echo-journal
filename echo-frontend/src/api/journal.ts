@@ -55,3 +55,19 @@ export const updateJournal = async (
     }
   );
 };
+
+export const analyzeJournal = async (id: string) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.post(
+    `/api/journals/${id}/analyze`,
+    {},
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+};
