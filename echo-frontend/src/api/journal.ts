@@ -27,3 +27,31 @@ export const getJournals = async () => {
 
   return response.data;
 };
+
+export const deleteJournal = async (id: string) => {
+  const token = localStorage.getItem("token");
+
+  return api.delete(`/api/journals/${id}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+};
+
+export const updateJournal = async (
+  id: string,
+  title: string,
+  content: string
+) => {
+  const token = localStorage.getItem("token");
+
+  return api.put(
+    `/api/journals/${id}`,
+    { title, content },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+};
