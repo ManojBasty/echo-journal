@@ -10,7 +10,6 @@ router.post('/journals', authenticate, createJournal);
 router.get('/journals', authenticate, getJournals); 
 router.put('/journals/:id', authenticate, updateJournal);
 router.delete('/journals/:id', authenticate, deleteJournal);
-router.post('/journals/:id/analyze', authenticate, analyzeJournal);
 
 
 export default router;
