@@ -7,27 +7,30 @@ import {
   analyzeJournal,
 } from "../api/journal";
 
+type Analysis = {
+  mood: string;
+  emotionalScore: number;
+  summary: string;
+  analyzedAt: string;
+};
+
 type Journal = {
   id: string;
   title: string;
   content: string;
   createdAt: string;
-};
-
-type Analysis = {
-  mood: string;
-  emotionalScore: number;
-  summary: string;
+  analyses: Analysis[];
 };
 
 export default function Dashboard() {
   const [journals, setJournals] = useState<Journal[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
 
-  const [analysisMap, setAnalysisMap] = useState<Record<string, Analysis>>({});
+  const [loadingId, setLoadingId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchJournals = async () => {
@@ -36,6 +39,8 @@ export default function Dashboard() {
         setJournals(data);
       } catch (error) {
         console.error("Failed to fetch journals", error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -77,133 +82,183 @@ export default function Dashboard() {
 
   const handleAnalyze = async (id: string) => {
     try {
+      setLoadingId(id);
+
       const data = await analyzeJournal(id);
 
-      setAnalysisMap((prev) => ({
-        ...prev,
-        [id]: data.analysis,
-      }));
+      setJournals((prev) =>
+        prev.map((j) =>
+          j.id === id
+            ? {
+                ...j,
+                analyses: [data.analysis],
+              }
+            : j
+        )
+      );
     } catch (error) {
       console.error("Analysis failed", error);
+    } finally {
+      setLoadingId(null);
     }
   };
 
+  const getMoodColor = (mood: string) => {
+    switch (mood) {
+      case "happy":
+        return "bg-green-100 text-green-700";
+      case "sad":
+        return "bg-blue-100 text-blue-700";
+      case "angry":
+        return "bg-red-100 text-red-700";
+      case "neutral":
+        return "bg-gray-100 text-gray-700";
+      default:
+        return "bg-purple-100 text-purple-700";
+    }
+  };
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="p-10 text-center text-gray-500">
+          Loading journals...
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6">
 
         <h2 className="text-3xl font-semibold">
           Your Journals
         </h2>
 
         {journals.length === 0 ? (
-          <p>No journals yet.</p>
+          <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
+            <h3 className="text-xl font-semibold text-gray-700">
+              No journals yet
+            </h3>
+            <p className="text-gray-500">
+              Start writing your thoughts and track your emotions
+            </p>
+          </div>
         ) : (
-          journals.map((journal) => (
-            <div
-              key={journal.id}
-              className="bg-white p-4 rounded shadow space-y-3"
-            >
+          journals.map((journal) => {
+            const latestAnalysis =
+              journal.analyses && journal.analyses.length > 0
+                ? journal.analyses[0]
+                : null;
 
-              {/* EDIT MODE */}
-              {editingId === journal.id ? (
-                <div className="space-y-2">
+            return (
+              <div
+                key={journal.id}
+                className="bg-white p-5 rounded-xl shadow-sm hover:shadow-md transition space-y-4 border"
+              >
 
-                  <input
-                    className="w-full border p-2 rounded"
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                  />
+                {editingId === journal.id ? (
+                  <div className="space-y-2">
 
-                  <textarea
-                    className="w-full border p-2 rounded"
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                  />
+                    <input
+                      className="w-full border p-2 rounded"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                    />
 
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleUpdate}
-                      className="bg-green-500 text-white px-3 py-1 rounded"
-                    >
-                      Save
-                    </button>
+                    <textarea
+                      className="w-full border p-2 rounded"
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                    />
 
-                    <button
-                      onClick={() => setEditingId(null)}
-                      className="bg-gray-400 text-white px-3 py-1 rounded"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleUpdate}
+                        className="bg-green-500 hover:bg-green-600 transition text-white px-3 py-1 rounded"
+                      >
+                        Save
+                      </button>
 
-                </div>
-              ) : (
-                <>
-                  {/* NORMAL VIEW */}
-                  <h3 className="text-xl font-semibold">
-                    {journal.title}
-                  </h3>
-
-                  <p className="text-gray-700">
-                    {journal.content.length > 150
-                      ? journal.content.slice(0, 150) + "..."
-                      : journal.content}
-                  </p>
-
-                  <p className="text-sm text-gray-400">
-                    {new Date(journal.createdAt).toLocaleString()}
-                  </p>
-
-                  {/* ACTIONS */}
-                  <div className="flex gap-3 pt-2 flex-wrap">
-                    <button
-                      onClick={() => handleEdit(journal)}
-                      className="bg-blue-500 text-white px-3 py-1 rounded"
-                    >
-                      Edit
-                    </button>
-
-                    <button
-                      onClick={() => handleDelete(journal.id)}
-                      className="bg-red-500 text-white px-3 py-1 rounded"
-                    >
-                      Delete
-                    </button>
-
-                    <button
-                      onClick={() => handleAnalyze(journal.id)}
-                      className="bg-purple-600 text-white px-3 py-1 rounded"
-                    >
-                      Analyze
-                    </button>
-                  </div>
-
-                  {/* ANALYSIS RESULT */}
-                  {analysisMap[journal.id] && (
-                    <div className="bg-gray-100 p-3 rounded mt-2 space-y-1">
-
-                      <p>
-                        <strong>Mood:</strong>{" "}
-                        {analysisMap[journal.id].mood}
-                      </p>
-
-                      <p>
-                        <strong>Score:</strong>{" "}
-                        {analysisMap[journal.id].emotionalScore}/10
-                      </p>
-
-                      <p>
-                        <strong>Summary:</strong>{" "}
-                        {analysisMap[journal.id].summary}
-                      </p>
-
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className="bg-gray-400 hover:bg-gray-500 transition text-white px-3 py-1 rounded"
+                      >
+                        Cancel
+                      </button>
                     </div>
-                  )}
-                </>
-              )}
-            </div>
-          ))
+
+                  </div>
+                ) : (
+                  <>
+                    <h3 className="text-xl font-semibold">
+                      {journal.title}
+                    </h3>
+
+                    <p className="text-gray-700">
+                      {journal.content.length > 150
+                        ? journal.content.slice(0, 150) + "..."
+                        : journal.content}
+                    </p>
+
+                    <p className="text-sm text-gray-400">
+                      {new Date(journal.createdAt).toLocaleString()}
+                    </p>
+
+                    {latestAnalysis && (
+                      <div className="bg-gray-50 p-3 rounded space-y-2">
+
+                        <div className="flex justify-between items-center">
+                          <span
+                            className={`px-3 py-1 text-sm rounded-full font-medium ${getMoodColor(
+                              latestAnalysis.mood
+                            )}`}
+                          >
+                            {latestAnalysis.mood}
+                          </span>
+
+                          <span className="text-sm text-gray-500">
+                            {latestAnalysis.emotionalScore}/10
+                          </span>
+                        </div>
+
+                        <p className="text-sm text-gray-700">
+                          {latestAnalysis.summary}
+                        </p>
+
+                      </div>
+                    )}
+
+                    <div className="flex gap-3 pt-2 flex-wrap">
+                      <button
+                        onClick={() => handleEdit(journal)}
+                        className="bg-blue-500 hover:bg-blue-600 transition text-white px-3 py-1 rounded"
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        onClick={() => handleDelete(journal.id)}
+                        className="bg-red-500 hover:bg-red-600 transition text-white px-3 py-1 rounded"
+                      >
+                        Delete
+                      </button>
+
+                      <button
+                        onClick={() => handleAnalyze(journal.id)}
+                        className="bg-purple-600 hover:bg-purple-700 transition text-white px-3 py-1 rounded"
+                      >
+                        {loadingId === journal.id
+                          ? "Analyzing..."
+                          : "Analyze"}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })
         )}
 
       </div>

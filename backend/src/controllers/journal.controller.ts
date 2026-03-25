@@ -91,6 +91,11 @@ export const deleteJournal = asyncHandler(
       throw { status: 404, message: "Journal not found" };
     }
 
+    // IMPORTANT: delete child records first
+    await prisma.journalAnalysis.deleteMany({
+      where: { journalId: id },
+    });
+
     await prisma.journal.delete({
       where: { id },
     });
