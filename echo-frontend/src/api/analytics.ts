@@ -7,5 +7,5 @@ export const getDashboardSummary = async () => {
 
 export const getWeeklyReflection = async () => {
   const res = await api.get("/api/analytics/weekly-reflection");
-  return res.data;
+  return res.data.data;
 };

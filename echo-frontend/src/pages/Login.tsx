@@ -8,49 +8,47 @@ export default function Login() {
   const navigate = useNavigate();
 
   const handleLogin = async () => {
-    try {
-      const data = await loginUser(email, password);
+  try {
+    const data = await loginUser(email, password);
 
-      // store token
-      localStorage.setItem("token", data.token);
+    console.log("LOGIN RESPONSE:", data); // ADD THIS
 
-      // redirect
-      navigate("/dashboard");
-    } catch (error: any) {
-      alert(error.response?.data?.message || "Login failed");
-    }
-  };
+    localStorage.setItem("token", data.token);
+    navigate("/dashboard");
+  } catch (error: any) {
+    console.log("LOGIN ERROR:", error.response); // ADD THIS
+    alert(error.response?.data?.message || "Login failed");
+  }
+};
 
   return (
-    <div className="h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white p-8 rounded shadow w-96 space-y-4">
+  <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 text-black dark:text-white">
 
-        <h2 className="text-2xl font-semibold text-center">Login</h2>
+    <div className="bg-white dark:bg-gray-900 p-8 rounded shadow w-96 space-y-4">
 
-        <input
-          type="email"
-          placeholder="Email"
-          className="w-full border p-2 rounded"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+      <h2 className="text-2xl font-semibold text-center">Login</h2>
 
-        <input
-          type="password"
-          placeholder="Password"
-          className="w-full border p-2 rounded"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+      <input
+        type="email"
+        placeholder="Email"
+        className="w-full p-2 rounded border bg-white text-black dark:bg-gray-900 dark:text-white dark:border-gray-700"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
 
-        <button
-          onClick={handleLogin}
-          className="w-full bg-black text-white p-2 rounded"
-        >
-          Login
-        </button>
+      <input
+        type="password"
+        placeholder="Password"
+        className="w-full p-2 rounded border bg-white text-black dark:bg-gray-900 dark:text-white dark:border-gray-700"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
 
-      </div>
+      <button onClick={handleLogin} className="w-full bg-black text-white p-2 rounded">
+        Login
+      </button>
+
     </div>
-  );
+  </div>
+);
 }

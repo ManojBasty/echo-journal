@@ -1,3 +1,22 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* 🔥 GLOBAL DARK SYSTEM */
+body {
+  @apply bg-gray-50 text-gray-900 transition-colors;
+}
+
+.dark body {
+  @apply bg-gray-950 text-gray-100;
+}
+
+/* 🔥 INPUT FIX (IMPORTANT) */
+input, textarea {
+  @apply bg-white text-black border border-gray-300;
+}
+
+.dark input,
+.dark textarea {
+  @apply bg-gray-900 text-white border-gray-700;
+}

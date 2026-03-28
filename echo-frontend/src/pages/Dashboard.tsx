@@ -6,6 +6,16 @@ import {
   updateJournal,
   analyzeJournal,
 } from "../api/journal";
+import { getDashboardSummary } from "../api/analytics";
+
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 type Analysis = {
   mood: string;
@@ -24,36 +34,60 @@ type Journal = {
 
 export default function Dashboard() {
   const [journals, setJournals] = useState<Journal[]>([]);
+  const [summary, setSummary] = useState<any>({
+    totalJournals: 0,
+    totalAnalyses: 0,
+    avgMood: 0,
+  });
+
   const [loading, setLoading] = useState(true);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
 
-  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [chartData, setChartData] = useState<any[]>([]);
 
+  // ================= FETCH =================
   useEffect(() => {
-    const fetchJournals = async () => {
+    const fetchData = async () => {
       try {
-        const data = await getJournals();
-        setJournals(data);
-      } catch (error) {
-        console.error("Failed to fetch journals", error);
-      } finally {
-        setLoading(false);
+        const journalsData = await getJournals();
+        setJournals(journalsData || []);
+
+        // Build chart data
+        const moodData = (journalsData || []).map((j: Journal) => ({
+          date: new Date(j.createdAt).toLocaleDateString(),
+          mood: j.analyses?.[0]?.emotionalScore || 0,
+        }));
+        setChartData(moodData);
+      } catch (err) {
+        console.error("Journal fetch failed", err);
       }
+
+      try {
+        const data = await getDashboardSummary();
+
+        setSummary({
+         totalJournals: data?.totalJournals || 0,
+         totalAnalyses: data?.totalAnalyses || 0,
+        avgMood: data?.averageEmotionalScoreLast7Days || 0,
+      });
+      } catch (err) {
+        console.error("Summary failed", err);
+      }
+
+      setLoading(false);
     };
 
-    fetchJournals();
+    fetchData();
   }, []);
 
+  // ================= HANDLERS =================
   const handleDelete = async (id: string) => {
-    try {
-      await deleteJournal(id);
-      setJournals((prev) => prev.filter((j) => j.id !== id));
-    } catch (error) {
-      console.error("Delete failed", error);
-    }
+    await deleteJournal(id);
+    setJournals((prev) => prev.filter((j) => j.id !== id));
   };
 
   const handleEdit = (journal: Journal) => {
@@ -63,66 +97,40 @@ export default function Dashboard() {
   };
 
   const handleUpdate = async () => {
-    try {
-      await updateJournal(editingId!, editTitle, editContent);
+    if (!editingId) return;
 
-      setJournals((prev) =>
-        prev.map((j) =>
-          j.id === editingId
-            ? { ...j, title: editTitle, content: editContent }
-            : j
-        )
-      );
+    await updateJournal(editingId, editTitle, editContent);
 
-      setEditingId(null);
-    } catch (error) {
-      console.error("Update failed", error);
-    }
+    setJournals((prev) =>
+      prev.map((j) =>
+        j.id === editingId
+          ? { ...j, title: editTitle, content: editContent }
+          : j
+      )
+    );
+
+    setEditingId(null);
   };
 
   const handleAnalyze = async (id: string) => {
-    try {
-      setLoadingId(id);
+    setLoadingId(id);
+    const data = await analyzeJournal(id);
 
-      const data = await analyzeJournal(id);
+    setJournals((prev) =>
+      prev.map((j) =>
+        j.id === id ? { ...j, analyses: [data.analysis] } : j
+      )
+    );
 
-      setJournals((prev) =>
-        prev.map((j) =>
-          j.id === id
-            ? {
-                ...j,
-                analyses: [data.analysis],
-              }
-            : j
-        )
-      );
-    } catch (error) {
-      console.error("Analysis failed", error);
-    } finally {
-      setLoadingId(null);
-    }
+    setLoadingId(null);
   };
 
-  const getMoodColor = (mood: string) => {
-    switch (mood) {
-      case "happy":
-        return "bg-green-100 text-green-700";
-      case "sad":
-        return "bg-blue-100 text-blue-700";
-      case "angry":
-        return "bg-red-100 text-red-700";
-      case "neutral":
-        return "bg-gray-100 text-gray-700";
-      default:
-        return "bg-purple-100 text-purple-700";
-    }
-  };
-
+  // ================= UI =================
   if (loading) {
     return (
       <MainLayout>
-        <div className="p-10 text-center text-gray-500">
-          Loading journals...
+        <div className="p-10 text-center text-gray-400">
+          Loading dashboard...
         </div>
       </MainLayout>
     );
@@ -130,124 +138,147 @@ export default function Dashboard() {
 
   return (
     <MainLayout>
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-8 p-4">
 
-        <h2 className="text-3xl font-semibold">
-          Your Journals
-        </h2>
+        {/* ===== SUMMARY ===== */}
+        <div className="grid md:grid-cols-3 gap-6">
+          {[
+            { label: "Total Journals", value: summary.totalJournals },
+            { label: "Analyses", value: summary.totalAnalyses },
+            { label: "Avg Mood", value: `${summary.avgMood}/10` },
+          ].map((card, i) => (
+            <div
+              key={i}
+              className="p-5 rounded-xl bg-white/60 dark:bg-[#1e293b]/80 
+              border backdrop-blur transition duration-300 
+              hover:scale-105 hover:border-purple-500"
+            >
+              <p className="text-sm text-gray-500">{card.label}</p>
+              <h3 className="text-2xl font-bold mt-2">
+                {card.value}
+              </h3>
+            </div>
+          ))}
+        </div>
 
-        {journals.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
-            <h3 className="text-xl font-semibold text-gray-700">
-              No journals yet
-            </h3>
-            <p className="text-gray-500">
-              Start writing your thoughts and track your emotions
-            </p>
+        {/* ===== ANALYTICS ===== */}
+        <div className="grid md:grid-cols-2 gap-6">
+
+          {/* 📊 CHART */}
+          <div className="p-5 rounded-xl bg-white/60 dark:bg-[#1e293b]/80 border backdrop-blur">
+            <h3 className="font-semibold mb-4">Mood Trend</h3>
+
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={chartData}>
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Line
+                  type="monotone"
+                  dataKey="mood"
+                  stroke="#8b5cf6"
+                  strokeWidth={2}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
-        ) : (
-          journals.map((journal) => {
-            const latestAnalysis =
-              journal.analyses && journal.analyses.length > 0
-                ? journal.analyses[0]
-                : null;
+
+          {/* 🧠 INSIGHT */}
+          <div className="p-5 rounded-xl bg-white/60 dark:bg-[#1e293b]/80 border backdrop-blur space-y-3">
+            <h3 className="font-semibold">Weekly Insight</h3>
+
+            <p className="text-gray-500 text-sm">
+              Your emotional patterns suggest increasing self-awareness and reflection.
+            </p>
+
+            <div className="text-purple-400 text-sm">
+              💡 Tip: Write consistently at the same time daily.
+            </div>
+          </div>
+        </div>
+
+        {/* ===== JOURNALS ===== */}
+        <div className="space-y-6">
+          {journals.length === 0 && (
+            <p className="text-center text-gray-400">
+              No journals found
+            </p>
+          )}
+
+          {journals.map((journal) => {
+            const latestAnalysis = journal.analyses?.[0];
 
             return (
               <div
                 key={journal.id}
-                className="bg-white p-5 rounded-xl shadow-sm hover:shadow-md transition space-y-4 border"
+                className="p-5 rounded-2xl bg-white/70 dark:bg-[#0f172a]/80 
+                border backdrop-blur space-y-4 
+                transition hover:border-purple-500"
               >
-
                 {editingId === journal.id ? (
-                  <div className="space-y-2">
-
+                  <>
                     <input
-                      className="w-full border p-2 rounded"
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
+                      className="w-full p-2 rounded bg-gray-100 dark:bg-[#1e293b]"
                     />
 
                     <textarea
-                      className="w-full border p-2 rounded"
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
+                      className="w-full p-2 rounded bg-gray-100 dark:bg-[#1e293b]"
                     />
 
                     <div className="flex gap-2">
                       <button
                         onClick={handleUpdate}
-                        className="bg-green-500 hover:bg-green-600 transition text-white px-3 py-1 rounded"
+                        className="px-3 py-1 bg-green-500 text-white rounded hover:scale-105"
                       >
                         Save
                       </button>
 
                       <button
                         onClick={() => setEditingId(null)}
-                        className="bg-gray-400 hover:bg-gray-500 transition text-white px-3 py-1 rounded"
+                        className="px-3 py-1 bg-gray-500 text-white rounded"
                       >
                         Cancel
                       </button>
                     </div>
-
-                  </div>
+                  </>
                 ) : (
                   <>
                     <h3 className="text-xl font-semibold">
                       {journal.title}
                     </h3>
 
-                    <p className="text-gray-700">
-                      {journal.content.length > 150
-                        ? journal.content.slice(0, 150) + "..."
-                        : journal.content}
-                    </p>
-
-                    <p className="text-sm text-gray-400">
-                      {new Date(journal.createdAt).toLocaleString()}
+                    <p className="text-sm text-gray-500">
+                      {journal.content.slice(0, 120)}...
                     </p>
 
                     {latestAnalysis && (
-                      <div className="bg-gray-50 p-3 rounded space-y-2">
-
-                        <div className="flex justify-between items-center">
-                          <span
-                            className={`px-3 py-1 text-sm rounded-full font-medium ${getMoodColor(
-                              latestAnalysis.mood
-                            )}`}
-                          >
-                            {latestAnalysis.mood}
-                          </span>
-
-                          <span className="text-sm text-gray-500">
-                            {latestAnalysis.emotionalScore}/10
-                          </span>
-                        </div>
-
-                        <p className="text-sm text-gray-700">
-                          {latestAnalysis.summary}
-                        </p>
-
-                      </div>
+                      <p className="text-sm text-purple-400">
+                        {latestAnalysis.summary}
+                      </p>
                     )}
 
-                    <div className="flex gap-3 pt-2 flex-wrap">
+                    <div className="flex gap-3">
                       <button
                         onClick={() => handleEdit(journal)}
-                        className="bg-blue-500 hover:bg-blue-600 transition text-white px-3 py-1 rounded"
+                        className="text-blue-500 hover:underline"
                       >
                         Edit
                       </button>
 
                       <button
                         onClick={() => handleDelete(journal.id)}
-                        className="bg-red-500 hover:bg-red-600 transition text-white px-3 py-1 rounded"
+                        className="text-red-500 hover:underline"
                       >
                         Delete
                       </button>
 
                       <button
                         onClick={() => handleAnalyze(journal.id)}
-                        className="bg-purple-600 hover:bg-purple-700 transition text-white px-3 py-1 rounded"
+                        className="text-purple-500 hover:underline"
                       >
                         {loadingId === journal.id
                           ? "Analyzing..."
@@ -258,9 +289,8 @@ export default function Dashboard() {
                 )}
               </div>
             );
-          })
-        )}
-
+          })}
+        </div>
       </div>
     </MainLayout>
   );
