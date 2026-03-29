@@ -6,7 +6,10 @@ import {
   updateJournal,
   analyzeJournal,
 } from "../api/journal";
-import { getDashboardSummary } from "../api/analytics";
+import {
+  getDashboardSummary,
+  getWeeklyReflection,
+} from "../api/analytics";
 
 import {
   LineChart,
@@ -34,11 +37,13 @@ type Journal = {
 
 export default function Dashboard() {
   const [journals, setJournals] = useState<Journal[]>([]);
-  const [summary, setSummary] = useState<any>({
+  const [summary, setSummary] = useState({
     totalJournals: 0,
     totalAnalyses: 0,
     avgMood: 0,
   });
+
+  const [weekly, setWeekly] = useState<any>(null);
 
   const [loading, setLoading] = useState(true);
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -49,6 +54,20 @@ export default function Dashboard() {
 
   const [chartData, setChartData] = useState<any[]>([]);
 
+  // ✅ CUSTOM TOOLTIP (OUTSIDE JSX)
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-[#0f172a] border border-purple-500/30 px-3 py-2 rounded-lg shadow-lg">
+          <p className="text-purple-400 text-sm font-medium">
+            Mood: {payload[0].value}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   // ================= FETCH =================
   useEffect(() => {
     const fetchData = async () => {
@@ -56,7 +75,6 @@ export default function Dashboard() {
         const journalsData = await getJournals();
         setJournals(journalsData || []);
 
-        // Build chart data
         const moodData = (journalsData || []).map((j: Journal) => ({
           date: new Date(j.createdAt).toLocaleDateString(),
           mood: j.analyses?.[0]?.emotionalScore || 0,
@@ -70,12 +88,20 @@ export default function Dashboard() {
         const data = await getDashboardSummary();
 
         setSummary({
-         totalJournals: data?.totalJournals || 0,
-         totalAnalyses: data?.totalAnalyses || 0,
-        avgMood: data?.averageEmotionalScoreLast7Days || 0,
-      });
+          totalJournals: data?.totalJournals || 0,
+          totalAnalyses: data?.totalAnalyses || 0,
+          avgMood:
+            data?.averageEmotionalScoreLast7Days || 0,
+        });
       } catch (err) {
         console.error("Summary failed", err);
+      }
+
+      try {
+        const weeklyData = await getWeeklyReflection();
+        setWeekly(weeklyData.weeklyReflection || null);
+      } catch (err) {
+        console.error("Weekly reflection failed", err);
       }
 
       setLoading(false);
@@ -122,6 +148,15 @@ export default function Dashboard() {
       )
     );
 
+    const summaryData = await getDashboardSummary();
+
+    setSummary({
+      totalJournals: summaryData?.totalJournals || 0,
+      totalAnalyses: summaryData?.totalAnalyses || 0,
+      avgMood:
+        summaryData?.averageEmotionalScoreLast7Days || 0,
+    });
+
     setLoadingId(null);
   };
 
@@ -150,8 +185,7 @@ export default function Dashboard() {
             <div
               key={i}
               className="p-5 rounded-xl bg-white/60 dark:bg-[#1e293b]/80 
-              border backdrop-blur transition duration-300 
-              hover:scale-105 hover:border-purple-500"
+              border backdrop-blur transition hover:scale-105 hover:border-purple-500"
             >
               <p className="text-sm text-gray-500">{card.label}</p>
               <h3 className="text-2xl font-bold mt-2">
@@ -164,36 +198,58 @@ export default function Dashboard() {
         {/* ===== ANALYTICS ===== */}
         <div className="grid md:grid-cols-2 gap-6">
 
-          {/* 📊 CHART */}
-          <div className="p-5 rounded-xl bg-white/60 dark:bg-[#1e293b]/80 border backdrop-blur">
+          {/* 📊 MOOD TREND */}
+          <div className="p-5 rounded-xl bg-white/60 dark:bg-[#1e293b]/80 border backdrop-blur transition hover:border-purple-500">
             <h3 className="font-semibold mb-4">Mood Trend</h3>
 
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={chartData}>
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fill: "#9ca3af", fontSize: 12 }}
+                  axisLine={{ stroke: "#374151" }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: "#9ca3af", fontSize: 12 }}
+                  axisLine={{ stroke: "#374151" }}
+                  tickLine={false}
+                  domain={[0, 10]}
+                />
+                <Tooltip content={<CustomTooltip />} />
                 <Line
                   type="monotone"
                   dataKey="mood"
                   stroke="#8b5cf6"
-                  strokeWidth={2}
+                  strokeWidth={3}
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 6 }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          {/* 🧠 INSIGHT */}
+          {/* 🧠 WEEKLY INSIGHT */}
           <div className="p-5 rounded-xl bg-white/60 dark:bg-[#1e293b]/80 border backdrop-blur space-y-3">
             <h3 className="font-semibold">Weekly Insight</h3>
 
-            <p className="text-gray-500 text-sm">
-              Your emotional patterns suggest increasing self-awareness and reflection.
-            </p>
-
-            <div className="text-purple-400 text-sm">
-              💡 Tip: Write consistently at the same time daily.
-            </div>
+            {!weekly ? (
+              <div className="text-sm text-gray-400 space-y-2">
+                <p>No insights generated yet.</p>
+                <p className="text-purple-400">
+                  💡 Analyze a few journals to unlock AI insights.
+                </p>
+              </div>
+            ) : (
+              <>
+                <p className="text-gray-300 text-sm">
+                  {weekly.overallTrend}
+                </p>
+                <p className="text-purple-400 text-sm">
+                  💡 {weekly.actionStep}
+                </p>
+              </>
+            )}
           </div>
         </div>
 
@@ -212,8 +268,7 @@ export default function Dashboard() {
               <div
                 key={journal.id}
                 className="p-5 rounded-2xl bg-white/70 dark:bg-[#0f172a]/80 
-                border backdrop-blur space-y-4 
-                transition hover:border-purple-500"
+                border backdrop-blur space-y-4 transition hover:border-purple-500"
               >
                 {editingId === journal.id ? (
                   <>
@@ -222,21 +277,18 @@ export default function Dashboard() {
                       onChange={(e) => setEditTitle(e.target.value)}
                       className="w-full p-2 rounded bg-gray-100 dark:bg-[#1e293b]"
                     />
-
                     <textarea
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
                       className="w-full p-2 rounded bg-gray-100 dark:bg-[#1e293b]"
                     />
-
                     <div className="flex gap-2">
                       <button
                         onClick={handleUpdate}
-                        className="px-3 py-1 bg-green-500 text-white rounded hover:scale-105"
+                        className="px-3 py-1 bg-green-500 text-white rounded"
                       >
                         Save
                       </button>
-
                       <button
                         onClick={() => setEditingId(null)}
                         className="px-3 py-1 bg-gray-500 text-white rounded"
@@ -250,17 +302,14 @@ export default function Dashboard() {
                     <h3 className="text-xl font-semibold">
                       {journal.title}
                     </h3>
-
                     <p className="text-sm text-gray-500">
                       {journal.content.slice(0, 120)}...
                     </p>
-
                     {latestAnalysis && (
                       <p className="text-sm text-purple-400">
                         {latestAnalysis.summary}
                       </p>
                     )}
-
                     <div className="flex gap-3">
                       <button
                         onClick={() => handleEdit(journal)}
@@ -268,14 +317,12 @@ export default function Dashboard() {
                       >
                         Edit
                       </button>
-
                       <button
                         onClick={() => handleDelete(journal.id)}
                         className="text-red-500 hover:underline"
                       >
                         Delete
                       </button>
-
                       <button
                         onClick={() => handleAnalyze(journal.id)}
                         className="text-purple-500 hover:underline"
