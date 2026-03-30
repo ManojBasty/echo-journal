@@ -8,7 +8,7 @@ Echo is a full-stack AI-powered journaling application that helps users capture 
 
 ## 🚀 Live Demo
 
-- 🌐 Frontend: https://your-vercel-url.vercel.app  
+- 🌐 Frontend: https://echo-journal-ashy.vercel.app  
 - ⚙️ Backend API: https://echo-journal.onrender.com  
 
 ---
