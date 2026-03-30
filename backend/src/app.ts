@@ -9,7 +9,13 @@ import { errorHandler } from "./middleware/error.middleware";
 import analyticsRoute from "./routes/analytics.route";
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://echo-journal-ashy.vercel.app"
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 // routes
