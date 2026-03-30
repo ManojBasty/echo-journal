@@ -1,12 +1,13 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { CustomRequest } from "../types/customRequest";
 
 interface JwtPayload {
   userId: string;
 }
 
 export const authenticate = (
-  req: Request,
+  req: CustomRequest,
   res: Response,
   next: NextFunction
 ) => {
@@ -26,7 +27,6 @@ export const authenticate = (
       process.env.JWT_SECRET as string
     ) as JwtPayload;
 
-    // attach user info to request
     req.userId = decoded.userId;
 
     next();
