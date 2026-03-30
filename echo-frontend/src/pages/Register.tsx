@@ -12,7 +12,7 @@ export default function Register() {
       await signupUser(email, password);
 
       alert("Signup successful! Please login.");
-      navigate("/");
+      navigate("/login"); // ✅ FIXED
     } catch (error: any) {
       console.log(error);
       alert(error.response?.data?.message || "Signup failed");
@@ -20,33 +20,60 @@ export default function Register() {
   };
 
   return (
-    <div className="h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white p-8 rounded shadow w-96 space-y-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#020617] px-4">
 
-        <h2 className="text-2xl font-semibold text-center">Register</h2>
+      <div className="w-full max-w-md p-8 rounded-2xl 
+      bg-white/5 border border-white/10 backdrop-blur space-y-5">
 
+        {/* TITLE */}
+        <h2 className="text-2xl font-semibold text-center text-white">
+          Create your account
+        </h2>
+
+        {/* EMAIL */}
         <input
           type="email"
           placeholder="Email"
-          className="w-full border p-2 rounded"
+          className="w-full p-3 rounded-lg 
+          bg-black/30 border border-white/10 
+          text-white placeholder-gray-400 
+          focus:outline-none focus:border-purple-500"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
 
+        {/* PASSWORD */}
         <input
           type="password"
           placeholder="Password"
-          className="w-full border p-2 rounded"
+          className="w-full p-3 rounded-lg 
+          bg-black/30 border border-white/10 
+          text-white placeholder-gray-400 
+          focus:outline-none focus:border-purple-500"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
 
+        {/* BUTTON */}
         <button
           onClick={handleSignup}
-          className="w-full bg-black text-white p-2 rounded"
+          className="w-full py-3 rounded-lg 
+          bg-purple-600 hover:bg-purple-700 
+          transition text-white font-medium"
         >
           Sign Up
         </button>
+
+        {/* FOOTER */}
+        <p className="text-sm text-gray-400 text-center">
+          Already have an account?{" "}
+          <span
+            onClick={() => navigate("/login")}
+            className="text-purple-400 cursor-pointer hover:underline"
+          >
+            Login
+          </span>
+        </p>
 
       </div>
     </div>
