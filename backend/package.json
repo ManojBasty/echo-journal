@@ -4,9 +4,9 @@
   "description": "This backend powers the Echo application.",
   "main": "index.js",
   "scripts": {
-  "build": "tsc",
-  "start": "node dist/app.js"
-},
+    "build": "tsc",
+    "start": "node dist/app.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
