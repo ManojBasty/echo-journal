@@ -1,73 +1,69 @@
-# React + TypeScript + Vite
+# 🎨 Echo Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The frontend of Echo — an AI-powered journaling application designed for private reflection, emotional awareness, and clean user experience.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+##  Overview
 
-## React Compiler
+This is a modern React-based interface that allows users to:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Write and manage journal entries
+- View AI-generated insights
+- Track emotional patterns visually
+- Interact with a clean, distraction-free UI
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+##  Tech Stack
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- **React**
+- **Vite**
+- **TypeScript**
+- **Tailwind CSS**
+- **Recharts (data visualization)**
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+---
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+##  Features
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+###  Authentication UI
+- Login & Register pages
+- Token-based session handling
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Journal Interface
+- Create, edit, delete journals
+- Inline editing support
+- Clean card-based layout
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### AI Insights Display
+- Summary of journal analysis
+- Emotional tone and scoring
+- Reflection prompts
+
+### Dashboard
+- Total journals & analyses
+- Average mood score
+- Mood trend chart (Recharts)
+
+###  Weekly Insights
+- AI-generated reflection summaries
+- Highlighted emotional patterns
+
+---
+
+##  UI/UX Highlights
+
+- 🌙 Dark mode support
+- 🧊 Glassmorphism design
+- ⚡ Smooth transitions & hover effects
+- 📱 Responsive layout
+
+---
+
+##  API Integration
+
+Communicates with backend via:
+
+```ts
+baseURL: "https://echo-journal.onrender.com"
