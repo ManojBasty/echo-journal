@@ -105,7 +105,7 @@ export default function Landing() {
 
         <div className="flex gap-4">
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/login")}
             className="text-sm hover:underline"
           >
             Login
@@ -141,7 +141,7 @@ export default function Landing() {
           </button>
 
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/login")}
             className="border border-gray-400 px-6 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition"
           >
             Login
