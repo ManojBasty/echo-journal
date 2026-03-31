@@ -143,13 +143,13 @@ export default function Dashboard() {
     setEditingId(null);
   };
 
-  // 🔥 FIXED ANALYZE FUNCTION
+  // 🔥 FIXED ANALYZE
   const handleAnalyze = async (id: string) => {
     setLoadingId(id);
 
     const data = await analyzeJournal(id);
 
-    // ✅ FIX: use data directly (NOT data.analysis)
+    // ✅ FIX HERE
     setJournals((prev) =>
       prev.map((j) =>
         j.id === id ? { ...j, analyses: [data] } : j
@@ -166,7 +166,7 @@ export default function Dashboard() {
         summaryData?.averageEmotionalScoreLast7Days || 0,
     });
 
-    // 🔥 ALSO REFRESH WEEKLY INSIGHT
+    // 🔥 refresh weekly insight
     const weeklyData = await getWeeklyReflection();
 
     if (weeklyData?.message) {
@@ -263,38 +263,87 @@ export default function Dashboard() {
 
         {/* JOURNALS */}
         <div className="space-y-6">
+          {journals.length === 0 && (
+            <p className="text-center text-gray-400">
+              No journals found
+            </p>
+          )}
+
           {journals.map((journal) => {
             const latestAnalysis = journal.analyses?.[0];
 
             return (
               <div
                 key={journal.id}
-                className="p-5 rounded-2xl bg-white/70 dark:bg-[#0f172a]/80 border"
+                className="p-5 rounded-2xl bg-white/70 dark:bg-[#0f172a]/80 
+                border backdrop-blur space-y-4 transition hover:border-purple-500"
               >
-                <h3 className="text-xl font-semibold">
-                  {journal.title}
-                </h3>
+                {editingId === journal.id ? (
+                  <>
+                    <input
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="w-full p-2 rounded bg-gray-100 dark:bg-[#1e293b]"
+                    />
+                    <textarea
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      className="w-full p-2 rounded bg-gray-100 dark:bg-[#1e293b]"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleUpdate}
+                        className="px-3 py-1 bg-green-500 text-white rounded"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className="px-3 py-1 bg-gray-500 text-white rounded"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-xl font-semibold">
+                      {journal.title}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {journal.content.slice(0, 120)}...
+                    </p>
 
-                <p className="text-sm text-gray-500">
-                  {journal.content.slice(0, 120)}...
-                </p>
+                    {latestAnalysis && (
+                      <p className="text-sm text-purple-400">
+                        {latestAnalysis.summary}
+                      </p>
+                    )}
 
-                {latestAnalysis && (
-                  <p className="text-sm text-purple-400">
-                    {latestAnalysis.summary}
-                  </p>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => handleEdit(journal)}
+                        className="text-blue-500 hover:underline"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(journal.id)}
+                        className="text-red-500 hover:underline"
+                      >
+                        Delete
+                      </button>
+                      <button
+                        onClick={() => handleAnalyze(journal.id)}
+                        className="text-purple-500 hover:underline"
+                      >
+                        {loadingId === journal.id
+                          ? "Analyzing..."
+                          : "Analyze"}
+                      </button>
+                    </div>
+                  </>
                 )}
-
-                <div className="flex gap-3 mt-2">
-                  <button
-                    onClick={() => handleAnalyze(journal.id)}
-                    className="text-purple-500"
-                  >
-                    {loadingId === journal.id
-                      ? "Analyzing..."
-                      : "Analyze"}
-                  </button>
-                </div>
               </div>
             );
           })}
