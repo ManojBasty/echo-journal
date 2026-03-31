@@ -1,41 +1,21 @@
 import api from "./axios";
 
 export const createJournal = async (title: string, content: string) => {
-  const token = localStorage.getItem("token");
-
-  const response = await api.post(
-    "/api/journals", // ✅ FIXED (plural)
-    { title, content },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+  const response = await api.post("/api/journals", {
+    title,
+    content,
+  });
 
   return response.data;
 };
 
 export const getJournals = async () => {
-  const token = localStorage.getItem("token");
-
-  const response = await api.get("/api/journals", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
+  const response = await api.get("/api/journals");
   return response.data;
 };
 
 export const deleteJournal = async (id: string) => {
-  const token = localStorage.getItem("token");
-
-  return api.delete(`/api/journals/${id}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  return api.delete(`/api/journals/${id}`);
 };
 
 export const updateJournal = async (
@@ -43,31 +23,13 @@ export const updateJournal = async (
   title: string,
   content: string
 ) => {
-  const token = localStorage.getItem("token");
-
-  return api.put(
-    `/api/journals/${id}`,
-    { title, content },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+  return api.put(`/api/journals/${id}`, {
+    title,
+    content,
+  });
 };
 
 export const analyzeJournal = async (id: string) => {
-  const token = localStorage.getItem("token");
-
-  const response = await api.post(
-    `/api/journals/${id}/analyze`,
-    {},
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
+  const response = await api.post(`/api/journals/${id}/analyze`, {});
   return response.data;
 };
