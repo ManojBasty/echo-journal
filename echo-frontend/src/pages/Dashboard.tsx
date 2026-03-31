@@ -54,7 +54,6 @@ export default function Dashboard() {
 
   const [chartData, setChartData] = useState<any[]>([]);
 
-  // ✅ CUSTOM TOOLTIP (OUTSIDE JSX)
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -90,8 +89,7 @@ export default function Dashboard() {
         setSummary({
           totalJournals: data?.totalJournals || 0,
           totalAnalyses: data?.totalAnalyses || 0,
-          avgMood:
-            data?.averageEmotionalScoreLast7Days || 0,
+          avgMood: data?.averageEmotionalScoreLast7Days || 0,
         });
       } catch (err) {
         console.error("Summary failed", err);
@@ -99,7 +97,14 @@ export default function Dashboard() {
 
       try {
         const weeklyData = await getWeeklyReflection();
-        setWeekly(weeklyData.weeklyReflection || null);
+
+        if (weeklyData?.message) {
+          setWeekly(null);
+        } else {
+          setWeekly(
+            weeklyData?.weeklyReflection || weeklyData || null
+          );
+        }
       } catch (err) {
         console.error("Weekly reflection failed", err);
       }
@@ -138,16 +143,20 @@ export default function Dashboard() {
     setEditingId(null);
   };
 
+  // 🔥 FIXED ANALYZE FUNCTION
   const handleAnalyze = async (id: string) => {
     setLoadingId(id);
+
     const data = await analyzeJournal(id);
 
+    // ✅ FIX: use data directly (NOT data.analysis)
     setJournals((prev) =>
       prev.map((j) =>
-        j.id === id ? { ...j, analyses: [data.analysis] } : j
+        j.id === id ? { ...j, analyses: [data] } : j
       )
     );
 
+    // refresh summary
     const summaryData = await getDashboardSummary();
 
     setSummary({
@@ -156,6 +165,17 @@ export default function Dashboard() {
       avgMood:
         summaryData?.averageEmotionalScoreLast7Days || 0,
     });
+
+    // 🔥 ALSO REFRESH WEEKLY INSIGHT
+    const weeklyData = await getWeeklyReflection();
+
+    if (weeklyData?.message) {
+      setWeekly(null);
+    } else {
+      setWeekly(
+        weeklyData?.weeklyReflection || weeklyData || null
+      );
+    }
 
     setLoadingId(null);
   };
@@ -175,7 +195,7 @@ export default function Dashboard() {
     <MainLayout>
       <div className="max-w-6xl mx-auto space-y-8 p-4">
 
-        {/* ===== SUMMARY ===== */}
+        {/* SUMMARY */}
         <div className="grid md:grid-cols-3 gap-6">
           {[
             { label: "Total Journals", value: summary.totalJournals },
@@ -195,41 +215,29 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* ===== ANALYTICS ===== */}
+        {/* ANALYTICS */}
         <div className="grid md:grid-cols-2 gap-6">
 
-          {/* 📊 MOOD TREND */}
+          {/* MOOD TREND */}
           <div className="p-5 rounded-xl bg-white/60 dark:bg-[#1e293b]/80 border backdrop-blur transition hover:border-purple-500">
             <h3 className="font-semibold mb-4">Mood Trend</h3>
 
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={chartData}>
-                <XAxis
-                  dataKey="date"
-                  tick={{ fill: "#9ca3af", fontSize: 12 }}
-                  axisLine={{ stroke: "#374151" }}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fill: "#9ca3af", fontSize: 12 }}
-                  axisLine={{ stroke: "#374151" }}
-                  tickLine={false}
-                  domain={[0, 10]}
-                />
+                <XAxis dataKey="date" />
+                <YAxis domain={[0, 10]} />
                 <Tooltip content={<CustomTooltip />} />
                 <Line
                   type="monotone"
                   dataKey="mood"
                   stroke="#8b5cf6"
                   strokeWidth={3}
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 6 }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          {/* 🧠 WEEKLY INSIGHT */}
+          {/* WEEKLY */}
           <div className="p-5 rounded-xl bg-white/60 dark:bg-[#1e293b]/80 border backdrop-blur space-y-3">
             <h3 className="font-semibold">Weekly Insight</h3>
 
@@ -253,87 +261,40 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ===== JOURNALS ===== */}
+        {/* JOURNALS */}
         <div className="space-y-6">
-          {journals.length === 0 && (
-            <p className="text-center text-gray-400">
-              No journals found
-            </p>
-          )}
-
           {journals.map((journal) => {
             const latestAnalysis = journal.analyses?.[0];
 
             return (
               <div
                 key={journal.id}
-                className="p-5 rounded-2xl bg-white/70 dark:bg-[#0f172a]/80 
-                border backdrop-blur space-y-4 transition hover:border-purple-500"
+                className="p-5 rounded-2xl bg-white/70 dark:bg-[#0f172a]/80 border"
               >
-                {editingId === journal.id ? (
-                  <>
-                    <input
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                      className="w-full p-2 rounded bg-gray-100 dark:bg-[#1e293b]"
-                    />
-                    <textarea
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      className="w-full p-2 rounded bg-gray-100 dark:bg-[#1e293b]"
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleUpdate}
-                        className="px-3 py-1 bg-green-500 text-white rounded"
-                      >
-                        Save
-                      </button>
-                      <button
-                        onClick={() => setEditingId(null)}
-                        className="px-3 py-1 bg-gray-500 text-white rounded"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <h3 className="text-xl font-semibold">
-                      {journal.title}
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      {journal.content.slice(0, 120)}...
-                    </p>
-                    {latestAnalysis && (
-                      <p className="text-sm text-purple-400">
-                        {latestAnalysis.summary}
-                      </p>
-                    )}
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => handleEdit(journal)}
-                        className="text-blue-500 hover:underline"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(journal.id)}
-                        className="text-red-500 hover:underline"
-                      >
-                        Delete
-                      </button>
-                      <button
-                        onClick={() => handleAnalyze(journal.id)}
-                        className="text-purple-500 hover:underline"
-                      >
-                        {loadingId === journal.id
-                          ? "Analyzing..."
-                          : "Analyze"}
-                      </button>
-                    </div>
-                  </>
+                <h3 className="text-xl font-semibold">
+                  {journal.title}
+                </h3>
+
+                <p className="text-sm text-gray-500">
+                  {journal.content.slice(0, 120)}...
+                </p>
+
+                {latestAnalysis && (
+                  <p className="text-sm text-purple-400">
+                    {latestAnalysis.summary}
+                  </p>
                 )}
+
+                <div className="flex gap-3 mt-2">
+                  <button
+                    onClick={() => handleAnalyze(journal.id)}
+                    className="text-purple-500"
+                  >
+                    {loadingId === journal.id
+                      ? "Analyzing..."
+                      : "Analyze"}
+                  </button>
+                </div>
               </div>
             );
           })}
